@@ -1,0 +1,21 @@
+{
+  "name": "youtubedownloader",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ytdl",
+    "node",
+    "js"
+  ],
+  "author": "schleimfresse",
+  "license": "MIT",
+  "dependencies": {
+    "cli-progress": "^3.12.0",
+    "ytdl-core": "^4.11.4",
+    "ytpl": "^2.3.0"
+  }
+}
