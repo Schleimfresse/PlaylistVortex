@@ -22,7 +22,7 @@ const colorCodes = {
 	bright: "\x1b[1m",
 };
 /**
- *
+ * Generates a 6 digit code in case a folder which is supposed to be generated for a downloaded playlist already exists
  * @returns a random 6 digit generated code
  * @since v.1.1.0
  */
@@ -53,7 +53,6 @@ async function downloadPlaylist(playlistUrl, ext) {
 		const downloadsPath = path.join(os.homedir(), "Downloads");
 		let playlistTitle = playlistInfo.title.replace(/[^\w\s]/gi, "");
 		let playlistFolderPath = path.join(downloadsPath, playlistTitle);
-		console.log(playlistTitle);
 		let folderExists = fs.existsSync(playlistFolderPath);
 		while (folderExists) {
 			console.warn(
@@ -61,7 +60,6 @@ async function downloadPlaylist(playlistUrl, ext) {
 			);
 			playlistTitle = playlistTitle + generateRandomCode();
 			playlistFolderPath = path.join(downloadsPath, playlistTitle);
-			console.log(playlistTitle, playlistFolderPath);
 			folderExists = fs.existsSync(playlistFolderPath);
 		}
 		fs.mkdirSync(playlistFolderPath);
@@ -78,50 +76,65 @@ async function downloadPlaylist(playlistUrl, ext) {
 			Presets.shades_classic
 		);
 
-		progressBar.start(100, 0, { trackstotal: playlistInfo.items.length });
-
+		console.log(`${colorCodes.reset + playlistInfo.items.length} elements found...`);
 		for (const videoInfo of playlistInfo.items) {
 			const videoTitle = videoInfo.title.replace(/[^\w\s]/gi, "");
 			const videoUrl = videoInfo.shortUrl;
-			progressBar.update(0, { title: videoTitle, tracknumber: playlistInfo.items.indexOf(videoInfo) + 1 });
-			let videoStream;
-			switch (ext) {
-				case "mp4":
-					videoStream = ytdl(videoUrl, { format: ext, filter: "videoandaudio", quality: "highestvideo" });
-					break;
-				case "mp3":
-					videoStream = ytdl(videoUrl, { format: ext, filter: "audioonly", quality: "highestaudio" });
-					break;
-				default:
-					throw new Error("No format was specified.");
-			}
-			const fileStream = fs.createWriteStream(path.join(playlistFolderPath, `${videoTitle}.${ext}`));
-
-			let receivedBytes = 0;
-			let totalBytes = 0;
-
-			videoStream.on("response", (response) => {
-				totalBytes = parseInt(response.headers["content-length"]);
-				progressBar.setTotal(totalBytes);
-			});
-
-			videoStream.on("data", (chunk) => {
-				receivedBytes += chunk.length;
-				progressBar.update(receivedBytes);
-			});
-
-			videoStream.pipe(fileStream);
 
 			await new Promise((resolve, reject) => {
-				videoStream.on("end", resolve);
-				videoStream.on("error", reject);
+				progressBar.start(100, 0, {
+					title: videoTitle,
+					tracknumber: playlistInfo.items.indexOf(videoInfo) + 1,
+					trackstotal: playlistInfo.items.length
+				});
+
+				let videoStream;
+				switch (ext) {
+					case "mp4":
+						videoStream = ytdl(videoUrl, { format: ext, filter: "videoandaudio", quality: "highestvideo" });
+						break;
+					case "mp3":
+						videoStream = ytdl(videoUrl, { format: ext, filter: "audioonly", quality: "highestaudio" });
+						break;
+					default:
+						throw new Error("No format was specified.");
+				}
+
+				const fileStream = fs.createWriteStream(path.join(playlistFolderPath, `${videoTitle}.${ext}`));
+
+				let receivedBytes = 0;
+				let totalBytes = 0;
+
+				videoStream.on("response", (response) => {
+					totalBytes = parseInt(response.headers["content-length"]);
+					progressBar.setTotal(totalBytes);
+				});
+
+				videoStream.on("data", (chunk) => {
+					receivedBytes += chunk.length;
+					progressBar.update(receivedBytes, {
+						title: videoTitle,
+						tracknumber: playlistInfo.items.indexOf(videoInfo) + 1,
+					});
+				});
+
+				videoStream.pipe(fileStream);
+
+				fileStream.on("finish", () => {
+					progressBar.stop();
+					console.log(
+						`${colorCodes.bright + colorCodes.green}Downloaded: ${colorCodes.reset + videoTitle}`
+					);
+					resolve();
+				});
+
+				videoStream.on("error", (error) => {
+					reject(error);
+				});
 			});
-
-			console.log(`\n${colorCodes.bright + colorCodes.green}Downloaded: ${colorCodes.reset + videoTitle}`);
 		}
-
-		progressBar.stop();
 		console.log(`${colorCodes.green}Playlist download completed.${colorCodes.reset}`);
+		progressBar.stop();
 	} catch (error) {
 		console.error(`${colorCodes.red}An error occurred:${colorCodes.reset}`, error);
 	} finally {
