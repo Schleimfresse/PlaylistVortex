@@ -16,13 +16,16 @@ Run the following command:
 2. Open a terminal or command prompt and navigate to the project directory.
 3. Run the following command:
 `
-PlaylistVortex.js --url <playlist_url>
+PlaylistVortex.exe --url <playlist_url>
 `
-Replace <playlist_url> with the URL of the YouTube playlist you want to download.
+`--url`: ---
 Additional options:
 
-`--type <type>`: Specify the file type. Available options are "mp3" and "mp4" (default: "mp4").
-`--noduplicate`: Specifies whether duplicates are removed from the playlist or not, when given duplicates are removed (default: false)
+`--type <type>`: Specify the file type. Available options are "mp3" and "mp4" (default: "mp4").\
+`--noduplicate`: Specifies whether duplicates are removed from the playlist or not, when given duplicates are removed (default: false).
+## Examples
+- Download a playlist with default options:
+`PlaylistVortex.exe --url "https://www.youtube.com/playlist?list=PLC4MBlcHkUNvCX9EN9zO8dF7VgWkCpQG0"`
 ## License
 This project is licensed under the [MIT License](https://github.com/Schleimfresse/PlaylistVortex/blob/main/LICENSE).
 ## Disclaimer
