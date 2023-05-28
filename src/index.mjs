@@ -5,12 +5,17 @@ import readline from "readline";
 import os from "os";
 import path from "path";
 import { SingleBar, Presets } from "cli-progress";
-
+import argv from "./config/argsConfig.mjs";
+import userInputHandler from "./util/userInputHandler.mjs";
 process.stdout.setEncoding("utf-8");
 const rl = readline.createInterface({
 	input: process.stdin,
 	output: process.stdout,
 });
+
+const playlistUrl = argv.url;
+const type = argv.type;
+const duplicate = argv.noduplicates;
 
 /**
  * All color codes which are needed; used to color text in the console
@@ -41,8 +46,9 @@ const generateRandomCode = () => {
 
 /**
  * main function
- * @param {*} playlistUrl URL of the playlist which gets downloaded
- * @param {*} ext extention for the files
+ * @param {string} playlistUrl URL of the playlist which gets downloaded
+ * @param {string} ext extention for the files
+ * @param {boolean} duplicate when true duplicates in the playlists gets removed
  * @async
  * @since v1.0.0
  */
@@ -50,24 +56,19 @@ async function downloadPlaylist(playlistUrl, ext, duplicate) {
 	try {
 		const playlistId = await ytpl.getPlaylistID(playlistUrl);
 		let playlistInfo = await ytpl(playlistId);
-		switch (duplicate) {
-			case "yes":
-				let plural = "s were";
-				const playlistInfo_Items = playlistInfo.items.filter((item, index, self) => {
-					return self.findIndex((i) => i.id === item.id) === index;
-				});
-				const duplicatesRemoved = playlistInfo.items.length - playlistInfo_Items.length;
-				playlistInfo.items = playlistInfo_Items;
-				if (duplicatesRemoved === 1) {
-					plural = " was";
-				}
-				console.log(`${duplicatesRemoved} duplicate${plural} removed`);
-				break;
-			case "no":
-				console.log("Duplicate removal: disabled");
-				break;
-			default:
-				throw new Error("No value was specified.");
+		if (duplicate) {
+			let plural = "s were";
+			const playlistInfo_Items = playlistInfo.items.filter((item, index, self) => {
+				return self.findIndex((i) => i.id === item.id) === index;
+			});
+			const duplicatesRemoved = playlistInfo.items.length - playlistInfo_Items.length;
+			playlistInfo.items = playlistInfo_Items;
+			if (duplicatesRemoved === 1) {
+				plural = " was";
+			}
+			console.log(`${duplicatesRemoved} duplicate${plural} removed`);
+		} else {
+			console.log("Duplicate removal: disabled");
 		}
 		const downloadsPath = path.join(os.homedir(), "Downloads");
 		let playlistTitle = playlistInfo.title.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_");
@@ -94,8 +95,11 @@ async function downloadPlaylist(playlistUrl, ext, duplicate) {
 			},
 			Presets.shades_classic
 		);
-
-		console.log(`${colorCodes.reset + playlistInfo.items.length} elements found...`);
+		let plural = "s were";
+		if (playlistInfo.items.length === 1) {
+			plural = " was";
+		}
+		console.log(`${colorCodes.reset + playlistInfo.items.length} element${plural} found...`);
 		for (const videoInfo of playlistInfo.items) {
 			const videoTitle = videoInfo.title.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_");
 			const videoUrl = videoInfo.shortUrl;
@@ -156,132 +160,40 @@ async function downloadPlaylist(playlistUrl, ext, duplicate) {
 		console.error(`${colorCodes.red}An error occurred:${colorCodes.reset}`, error);
 	} finally {
 		rl.close();
-		process.exit(1);
+		process.exit(0);
 	}
 }
 
-/**
- * User input
- * @since v.1.0.0
- */
-rl.question(
-	`${colorCodes.bright}Paste your YouTube playlist link here: ${colorCodes.reset}`,
-	async (YTURL) => {
-		if (!YTURL.includes("youtube.com")) {
-			console.log(`${colorCodes.yellow}Please enter a valid YouTube link${colorCodes.reset}`);
-			return retryurl();
-		}
-		rl.question(
-			`${colorCodes.bright}Should the files have video and audio or only audio? (audio/video): ${colorCodes.reset}`,
-			async (TYPE) => {
-				if (TYPE.toLowerCase().trim() === "audio") {
-					TYPE = "mp3";
-				} else if (TYPE.toLowerCase().trim() === "video") {
-					TYPE = "mp4";
-				} else {
-					console.log(`${colorCodes.yellow}Please enter valid values${colorCodes.reset}`);
-					return retrymediatype(YTURL);
-				}
-				rl.question(
-					`${colorCodes.bright}Should duplicates be removed? (yes/no): ${colorCodes.reset}`,
-					async (DUPLICATE) => {
-						if (DUPLICATE.toLowerCase().trim() !== "yes" && DUPLICATE.toLowerCase().trim() !== "no") {
-							console.log(`${colorCodes.yellow}Please enter a valid value${colorCodes.reset}`);
-							return retrydup();
-						}
-						downloadPlaylist(String(YTURL), String(TYPE), String(DUPLICATE));
-					}
-				);
-			}
-		);
-	}
-);
-
-/**
- * When the user inputs a invalid media type this function re-asks for input
- * @param {*} YTURL URL of the playlist which gets downloaded
- * @since v.1.0.0
- */
-const retrymediatype = (YTURL) => {
-	rl.question(
-		`${colorCodes.bright}Should the files have video and audio or only audio? (audio/video): ${colorCodes.reset}`,
-		async (TYPE) => {
-			if (TYPE.toLowerCase().trim() === "audio") {
-				TYPE = "mp3";
-			} else if (TYPE.toLowerCase().trim() === "video") {
-				TYPE = "mp4";
-			} else {
-				console.log(`${colorCodes.yellow}Please enter valid values${colorCodes.reset}`);
-				return retrymediatype(YTURL);
-			}
-			rl.question(
-				`${colorCodes.bright}Should duplicates be removed? (yes/no): ${colorCodes.reset}`,
-				async (DUPLICATE) => {
-					if (DUPLICATE.toLowerCase().trim() !== "yes" && DUPLICATE.toLowerCase().trim() !== "no") {
-						console.log(`${colorCodes.yellow}Please enter a valid value${colorCodes.reset}`);
-						return retrydup();
-					}
-					downloadPlaylist(String(YTURL), String(TYPE), String(DUPLICATE));
-				}
-			);
-		}
-	);
-};
-
-/**
- * When the user inputs a invalid link this function re-asks for input
- * @since v.1.0.0
- */
-const retryurl = () => {
+if (!playlistUrl) {
+	console.log("No arguments provided, using interactive command-line interface (CLI) for input...");
 	rl.question(
 		`${colorCodes.bright}Paste your YouTube playlist link here: ${colorCodes.reset}`,
 		async (YTURL) => {
 			if (!YTURL.includes("youtube.com")) {
 				console.log(`${colorCodes.yellow}Please enter a valid YouTube link${colorCodes.reset}`);
-				return retryurl();
+				return userInputHandler.retryurl();
 			}
 			rl.question(
-				`${colorCodes.bright}Should the files have video and audio or only audio? (audio/video): ${colorCodes.reset}`,
+				`${colorCodes.bright}Should the files have video and audio or only audio? (mp3/mp4): ${colorCodes.reset}`,
 				async (TYPE) => {
-					if (TYPE.toLowerCase().trim() === "audio") {
-						TYPE = "mp3";
-					} else if (TYPE.toLowerCase().trim() === "video") {
-						TYPE = "mp4";
-					} else {
+					if (TYPE.toLowerCase().trim() !== "mp3" && TYPE.toLowerCase().trim() !== "mp4") {
 						console.log(`${colorCodes.yellow}Please enter valid values${colorCodes.reset}`);
 						return retrymediatype(YTURL);
 					}
 					rl.question(
-						`${colorCodes.bright}Should duplicates be removed? (yes/no): ${colorCodes.reset}`,
+						`${colorCodes.bright}Should duplicates be removed? (true/false): ${colorCodes.reset}`,
 						async (DUPLICATE) => {
-							if (DUPLICATE.toLowerCase().trim() !== "yes" && DUPLICATE.toLowerCase().trim() !== "no") {
+							if (DUPLICATE.toLowerCase().trim() !== "true" && DUPLICATE.toLowerCase().trim() !== "false") {
 								console.log(`${colorCodes.yellow}Please enter a valid value${colorCodes.reset}`);
-								return retrydup();
+								return userInputHandler.retrydup();
 							}
-							downloadPlaylist(String(YTURL), String(TYPE), String(DUPLICATE));
+							downloadPlaylist(String(YTURL), String(TYPE), JSON.parse(DUPLICATE));
 						}
 					);
 				}
 			);
 		}
 	);
-};
-
-/**
- * @param {*} YTURL URL of the playlist which gets downloaded
- * @param {*} TYPE type whether the files are just audio files or video files
- * When the user inputs a invalid value this function re-asks for input
- * @since v.1.3.0
- */
-const retrydup = (YTURL, TYPE) => {
-	rl.question(
-		`${colorCodes.bright}Should duplicates be removed? (yes/no): ${colorCodes.reset}`,
-		async (DUPLICATE) => {
-			if (DUPLICATE.toLowerCase().trim() !== "yes" && DUPLICATE.toLowerCase().trim() !== "no") {
-				console.log(`${colorCodes.yellow}Please enter a valid value${colorCodes.reset}`);
-				return retrydup();
-			}
-			downloadPlaylist(String(YTURL), String(TYPE), String(DUPLICATE));
-		}
-	);
-};
+} else {
+	downloadPlaylist(playlistUrl, type, duplicate);
+}

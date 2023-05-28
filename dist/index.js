@@ -8,6 +8,8 @@ var _readline = _interopRequireDefault(require("readline"));
 var _os = _interopRequireDefault(require("os"));
 var _path = _interopRequireDefault(require("path"));
 var _cliProgress = require("cli-progress");
+var _argsConfig = _interopRequireDefault(require("./config/argsConfig"));
+var _userInputHandler = _interopRequireDefault(require("./util/userInputHandler"));
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 function _createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
 function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
@@ -20,7 +22,10 @@ var rl = _readline["default"].createInterface({
   input: process.stdin,
   output: process.stdout
 });
-
+var playlistUrl = _argsConfig["default"].url;
+var type = _argsConfig["default"].type;
+var duplicate = _argsConfig["default"].duplicates;
+console.log(duplicate);
 /**
  * All color codes which are needed; used to color text in the console
  */
@@ -48,56 +53,46 @@ var generateRandomCode = function generateRandomCode() {
 
 /**
  * main function
- * @param {*} playlistUrl URL of the playlist which gets downloaded
- * @param {*} ext extention for the files
+ * @param {string} playlistUrl URL of the playlist which gets downloaded
+ * @param {string} ext extention for the files
+ * @param {boolean} duplicate when true duplicates in the playlists gets removed
  * @async
  * @since v1.0.0
  */
 function downloadPlaylist(_x, _x2, _x3) {
   return _downloadPlaylist.apply(this, arguments);
 }
-/**
- * User input
- * @since v.1.0.0
- */
 function _downloadPlaylist() {
-  _downloadPlaylist = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee10(playlistUrl, ext, duplicate) {
-    var playlistId, playlistInfo, plural, playlistInfo_Items, duplicatesRemoved, downloadsPath, playlistTitle, playlistFolderPath, folderExists, progressBar, _iterator, _step, _loop;
-    return _regeneratorRuntime().wrap(function _callee10$(_context11) {
-      while (1) switch (_context11.prev = _context11.next) {
+  _downloadPlaylist = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee4(playlistUrl, ext, duplicate) {
+    var playlistId, playlistInfo, _plural, playlistInfo_Items, duplicatesRemoved, downloadsPath, playlistTitle, playlistFolderPath, folderExists, progressBar, plural, _iterator, _step, _loop;
+    return _regeneratorRuntime().wrap(function _callee4$(_context5) {
+      while (1) switch (_context5.prev = _context5.next) {
         case 0:
-          _context11.prev = 0;
-          _context11.next = 3;
+          _context5.prev = 0;
+          _context5.next = 3;
           return _ytpl["default"].getPlaylistID(playlistUrl);
         case 3:
-          playlistId = _context11.sent;
-          _context11.next = 6;
+          playlistId = _context5.sent;
+          _context5.next = 6;
           return (0, _ytpl["default"])(playlistId);
         case 6:
-          playlistInfo = _context11.sent;
-          _context11.t0 = duplicate;
-          _context11.next = _context11.t0 === "yes" ? 10 : _context11.t0 === "no" ? 17 : 19;
-          break;
-        case 10:
-          plural = "s were";
-          playlistInfo_Items = playlistInfo.items.filter(function (item, index, self) {
-            return self.findIndex(function (i) {
-              return i.id === item.id;
-            }) === index;
-          });
-          duplicatesRemoved = playlistInfo.items.length - playlistInfo_Items.length;
-          playlistInfo.items = playlistInfo_Items;
-          if (duplicatesRemoved === 1) {
-            plural = " was";
+          playlistInfo = _context5.sent;
+          if (duplicate) {
+            _plural = "s were";
+            playlistInfo_Items = playlistInfo.items.filter(function (item, index, self) {
+              return self.findIndex(function (i) {
+                return i.id === item.id;
+              }) === index;
+            });
+            duplicatesRemoved = playlistInfo.items.length - playlistInfo_Items.length;
+            playlistInfo.items = playlistInfo_Items;
+            if (duplicatesRemoved === 1) {
+              _plural = " was";
+            }
+            console.log("".concat(duplicatesRemoved, " duplicate").concat(_plural, " removed"));
+          } else {
+            console.log("Duplicate removal: disabled");
           }
-          console.log("".concat(duplicatesRemoved, " duplicate").concat(plural, " removed"));
-          return _context11.abrupt("break", 20);
-        case 17:
-          console.log("Duplicate removal: disabled");
-          return _context11.abrupt("break", 20);
-        case 19:
-          throw new Error("No value was specified.");
-        case 20:
           downloadsPath = _path["default"].join(_os["default"].homedir(), "Downloads");
           playlistTitle = playlistInfo.title.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_");
           playlistFolderPath = _path["default"].join(downloadsPath, playlistTitle);
@@ -115,18 +110,22 @@ function _downloadPlaylist() {
             barIncompleteChar: "\u2591",
             hideCursor: true
           }, _cliProgress.Presets.shades_classic);
-          console.log("".concat(colorCodes.reset + playlistInfo.items.length, " elements found..."));
+          plural = "s were";
+          if (playlistInfo.items.length === 1) {
+            plural = " was";
+          }
+          console.log("".concat(colorCodes.reset + playlistInfo.items.length, " element").concat(plural, " found..."));
           _iterator = _createForOfIteratorHelper(playlistInfo.items);
-          _context11.prev = 29;
+          _context5.prev = 19;
           _loop = /*#__PURE__*/_regeneratorRuntime().mark(function _loop() {
             var videoInfo, videoTitle, videoUrl;
-            return _regeneratorRuntime().wrap(function _loop$(_context10) {
-              while (1) switch (_context10.prev = _context10.next) {
+            return _regeneratorRuntime().wrap(function _loop$(_context4) {
+              while (1) switch (_context4.prev = _context4.next) {
                 case 0:
                   videoInfo = _step.value;
                   videoTitle = videoInfo.title.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_");
                   videoUrl = videoInfo.shortUrl;
-                  _context10.next = 5;
+                  _context4.next = 5;
                   return new Promise(function (resolve, reject) {
                     progressBar.start(100, 0, {
                       title: videoTitle,
@@ -178,312 +177,122 @@ function _downloadPlaylist() {
                   });
                 case 5:
                 case "end":
-                  return _context10.stop();
+                  return _context4.stop();
               }
             }, _loop);
           });
           _iterator.s();
-        case 32:
+        case 22:
           if ((_step = _iterator.n()).done) {
-            _context11.next = 36;
+            _context5.next = 26;
             break;
           }
-          return _context11.delegateYield(_loop(), "t1", 34);
-        case 34:
-          _context11.next = 32;
+          return _context5.delegateYield(_loop(), "t0", 24);
+        case 24:
+          _context5.next = 22;
           break;
-        case 36:
-          _context11.next = 41;
+        case 26:
+          _context5.next = 31;
           break;
-        case 38:
-          _context11.prev = 38;
-          _context11.t2 = _context11["catch"](29);
-          _iterator.e(_context11.t2);
-        case 41:
-          _context11.prev = 41;
+        case 28:
+          _context5.prev = 28;
+          _context5.t1 = _context5["catch"](19);
+          _iterator.e(_context5.t1);
+        case 31:
+          _context5.prev = 31;
           _iterator.f();
-          return _context11.finish(41);
-        case 44:
+          return _context5.finish(31);
+        case 34:
           console.log("".concat(colorCodes.green, "Playlist download completed.").concat(colorCodes.reset));
           progressBar.stop();
-          _context11.next = 51;
+          _context5.next = 41;
           break;
-        case 48:
-          _context11.prev = 48;
-          _context11.t3 = _context11["catch"](0);
-          console.error("".concat(colorCodes.red, "An error occurred:").concat(colorCodes.reset), _context11.t3);
-        case 51:
-          _context11.prev = 51;
+        case 38:
+          _context5.prev = 38;
+          _context5.t2 = _context5["catch"](0);
+          console.error("".concat(colorCodes.red, "An error occurred:").concat(colorCodes.reset), _context5.t2);
+        case 41:
+          _context5.prev = 41;
           rl.close();
-          process.exit(1);
-          return _context11.finish(51);
-        case 55:
+          process.exit(0);
+          return _context5.finish(41);
+        case 45:
         case "end":
-          return _context11.stop();
+          return _context5.stop();
       }
-    }, _callee10, null, [[0, 48, 51, 55], [29, 38, 41, 44]]);
+    }, _callee4, null, [[0, 38, 41, 45], [19, 28, 31, 34]]);
   }));
   return _downloadPlaylist.apply(this, arguments);
 }
-rl.question("".concat(colorCodes.bright, "Paste your YouTube playlist link here: ").concat(colorCodes.reset), /*#__PURE__*/function () {
-  var _ref = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee3(YTURL) {
-    return _regeneratorRuntime().wrap(function _callee3$(_context3) {
-      while (1) switch (_context3.prev = _context3.next) {
-        case 0:
-          if (YTURL.includes("youtube.com")) {
-            _context3.next = 3;
-            break;
-          }
-          console.log("".concat(colorCodes.yellow, "Please enter a valid YouTube link").concat(colorCodes.reset));
-          return _context3.abrupt("return", retryurl());
-        case 3:
-          rl.question("".concat(colorCodes.bright, "Should the files have video and audio or only audio? (audio/video): ").concat(colorCodes.reset), /*#__PURE__*/function () {
-            var _ref2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2(TYPE) {
-              return _regeneratorRuntime().wrap(function _callee2$(_context2) {
-                while (1) switch (_context2.prev = _context2.next) {
-                  case 0:
-                    if (!(TYPE.toLowerCase().trim() === "audio")) {
-                      _context2.next = 4;
-                      break;
-                    }
-                    TYPE = "mp3";
-                    _context2.next = 10;
-                    break;
-                  case 4:
-                    if (!(TYPE.toLowerCase().trim() === "video")) {
-                      _context2.next = 8;
-                      break;
-                    }
-                    TYPE = "mp4";
-                    _context2.next = 10;
-                    break;
-                  case 8:
-                    console.log("".concat(colorCodes.yellow, "Please enter valid values").concat(colorCodes.reset));
-                    return _context2.abrupt("return", retrymediatype(YTURL));
-                  case 10:
-                    rl.question("".concat(colorCodes.bright, "Should duplicates be removed? (yes/no): ").concat(colorCodes.reset), /*#__PURE__*/function () {
-                      var _ref3 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(DUPLICATE) {
-                        return _regeneratorRuntime().wrap(function _callee$(_context) {
-                          while (1) switch (_context.prev = _context.next) {
-                            case 0:
-                              if (!(DUPLICATE.toLowerCase().trim() !== "yes" && DUPLICATE.toLowerCase().trim() !== "no")) {
-                                _context.next = 3;
-                                break;
-                              }
-                              console.log("".concat(colorCodes.yellow, "Please enter a valid value").concat(colorCodes.reset));
-                              return _context.abrupt("return", retrydup());
-                            case 3:
-                              downloadPlaylist(String(YTURL), String(TYPE), String(DUPLICATE));
-                            case 4:
-                            case "end":
-                              return _context.stop();
-                          }
-                        }, _callee);
-                      }));
-                      return function (_x6) {
-                        return _ref3.apply(this, arguments);
-                      };
-                    }());
-                  case 11:
-                  case "end":
-                    return _context2.stop();
-                }
-              }, _callee2);
-            }));
-            return function (_x5) {
-              return _ref2.apply(this, arguments);
-            };
-          }());
-        case 4:
-        case "end":
-          return _context3.stop();
-      }
-    }, _callee3);
-  }));
-  return function (_x4) {
-    return _ref.apply(this, arguments);
-  };
-}());
-
-/**
- * When the user inputs a invalid media type this function re-asks for input
- * @param {*} YTURL URL of the playlist which gets downloaded
- * @since v.1.0.0
- */
-var retrymediatype = function retrymediatype(YTURL) {
-  rl.question("".concat(colorCodes.bright, "Should the files have video and audio or only audio? (audio/video): ").concat(colorCodes.reset), /*#__PURE__*/function () {
-    var _ref4 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee5(TYPE) {
-      return _regeneratorRuntime().wrap(function _callee5$(_context5) {
-        while (1) switch (_context5.prev = _context5.next) {
-          case 0:
-            if (!(TYPE.toLowerCase().trim() === "audio")) {
-              _context5.next = 4;
-              break;
-            }
-            TYPE = "mp3";
-            _context5.next = 10;
-            break;
-          case 4:
-            if (!(TYPE.toLowerCase().trim() === "video")) {
-              _context5.next = 8;
-              break;
-            }
-            TYPE = "mp4";
-            _context5.next = 10;
-            break;
-          case 8:
-            console.log("".concat(colorCodes.yellow, "Please enter valid values").concat(colorCodes.reset));
-            return _context5.abrupt("return", retrymediatype(YTURL));
-          case 10:
-            rl.question("".concat(colorCodes.bright, "Should duplicates be removed? (yes/no): ").concat(colorCodes.reset), /*#__PURE__*/function () {
-              var _ref5 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee4(DUPLICATE) {
-                return _regeneratorRuntime().wrap(function _callee4$(_context4) {
-                  while (1) switch (_context4.prev = _context4.next) {
-                    case 0:
-                      if (!(DUPLICATE.toLowerCase().trim() !== "yes" && DUPLICATE.toLowerCase().trim() !== "no")) {
-                        _context4.next = 3;
-                        break;
-                      }
-                      console.log("".concat(colorCodes.yellow, "Please enter a valid value").concat(colorCodes.reset));
-                      return _context4.abrupt("return", retrydup());
-                    case 3:
-                      downloadPlaylist(String(YTURL), String(TYPE), String(DUPLICATE));
-                    case 4:
-                    case "end":
-                      return _context4.stop();
-                  }
-                }, _callee4);
-              }));
-              return function (_x8) {
-                return _ref5.apply(this, arguments);
-              };
-            }());
-          case 11:
-          case "end":
-            return _context5.stop();
-        }
-      }, _callee5);
-    }));
-    return function (_x7) {
-      return _ref4.apply(this, arguments);
-    };
-  }());
-};
-
-/**
- * When the user inputs a invalid link this function re-asks for input
- * @since v.1.0.0
- */
-var retryurl = function retryurl() {
+if (!playlistUrl) {
+  console.log("No arguments provided, using interactive command-line interface (CLI) for input...");
   rl.question("".concat(colorCodes.bright, "Paste your YouTube playlist link here: ").concat(colorCodes.reset), /*#__PURE__*/function () {
-    var _ref6 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee8(YTURL) {
-      return _regeneratorRuntime().wrap(function _callee8$(_context8) {
-        while (1) switch (_context8.prev = _context8.next) {
+    var _ref = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee3(YTURL) {
+      return _regeneratorRuntime().wrap(function _callee3$(_context3) {
+        while (1) switch (_context3.prev = _context3.next) {
           case 0:
             if (YTURL.includes("youtube.com")) {
-              _context8.next = 3;
+              _context3.next = 3;
               break;
             }
             console.log("".concat(colorCodes.yellow, "Please enter a valid YouTube link").concat(colorCodes.reset));
-            return _context8.abrupt("return", retryurl());
+            return _context3.abrupt("return", _userInputHandler["default"].retryurl());
           case 3:
-            rl.question("".concat(colorCodes.bright, "Should the files have video and audio or only audio? (audio/video): ").concat(colorCodes.reset), /*#__PURE__*/function () {
-              var _ref7 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee7(TYPE) {
-                return _regeneratorRuntime().wrap(function _callee7$(_context7) {
-                  while (1) switch (_context7.prev = _context7.next) {
+            rl.question("".concat(colorCodes.bright, "Should the files have video and audio or only audio? (mp3/mp4): ").concat(colorCodes.reset), /*#__PURE__*/function () {
+              var _ref2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2(TYPE) {
+                return _regeneratorRuntime().wrap(function _callee2$(_context2) {
+                  while (1) switch (_context2.prev = _context2.next) {
                     case 0:
-                      if (!(TYPE.toLowerCase().trim() === "audio")) {
-                        _context7.next = 4;
+                      if (!(TYPE.toLowerCase().trim() !== "mp3" && TYPE.toLowerCase().trim() !== "mp4")) {
+                        _context2.next = 3;
                         break;
                       }
-                      TYPE = "mp3";
-                      _context7.next = 10;
-                      break;
-                    case 4:
-                      if (!(TYPE.toLowerCase().trim() === "video")) {
-                        _context7.next = 8;
-                        break;
-                      }
-                      TYPE = "mp4";
-                      _context7.next = 10;
-                      break;
-                    case 8:
                       console.log("".concat(colorCodes.yellow, "Please enter valid values").concat(colorCodes.reset));
-                      return _context7.abrupt("return", retrymediatype(YTURL));
-                    case 10:
-                      rl.question("".concat(colorCodes.bright, "Should duplicates be removed? (yes/no): ").concat(colorCodes.reset), /*#__PURE__*/function () {
-                        var _ref8 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee6(DUPLICATE) {
-                          return _regeneratorRuntime().wrap(function _callee6$(_context6) {
-                            while (1) switch (_context6.prev = _context6.next) {
+                      return _context2.abrupt("return", retrymediatype(YTURL));
+                    case 3:
+                      rl.question("".concat(colorCodes.bright, "Should duplicates be removed? (true/false): ").concat(colorCodes.reset), /*#__PURE__*/function () {
+                        var _ref3 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(DUPLICATE) {
+                          return _regeneratorRuntime().wrap(function _callee$(_context) {
+                            while (1) switch (_context.prev = _context.next) {
                               case 0:
-                                if (!(DUPLICATE.toLowerCase().trim() !== "yes" && DUPLICATE.toLowerCase().trim() !== "no")) {
-                                  _context6.next = 3;
+                                if (!(DUPLICATE.toLowerCase().trim() !== "true" && DUPLICATE.toLowerCase().trim() !== "false")) {
+                                  _context.next = 3;
                                   break;
                                 }
                                 console.log("".concat(colorCodes.yellow, "Please enter a valid value").concat(colorCodes.reset));
-                                return _context6.abrupt("return", retrydup());
+                                return _context.abrupt("return", _userInputHandler["default"].retrydup());
                               case 3:
-                                downloadPlaylist(String(YTURL), String(TYPE), String(DUPLICATE));
+                                downloadPlaylist(String(YTURL), String(TYPE), JSON.parse(DUPLICATE));
                               case 4:
                               case "end":
-                                return _context6.stop();
+                                return _context.stop();
                             }
-                          }, _callee6);
+                          }, _callee);
                         }));
-                        return function (_x11) {
-                          return _ref8.apply(this, arguments);
+                        return function (_x6) {
+                          return _ref3.apply(this, arguments);
                         };
                       }());
-                    case 11:
+                    case 4:
                     case "end":
-                      return _context7.stop();
+                      return _context2.stop();
                   }
-                }, _callee7);
+                }, _callee2);
               }));
-              return function (_x10) {
-                return _ref7.apply(this, arguments);
+              return function (_x5) {
+                return _ref2.apply(this, arguments);
               };
             }());
           case 4:
           case "end":
-            return _context8.stop();
+            return _context3.stop();
         }
-      }, _callee8);
+      }, _callee3);
     }));
-    return function (_x9) {
-      return _ref6.apply(this, arguments);
+    return function (_x4) {
+      return _ref.apply(this, arguments);
     };
   }());
-};
-
-/**
- * @param {*} YTURL URL of the playlist which gets downloaded
- * @param {*} TYPE type whether the files are just audio files or video files
- * When the user inputs a invalid value this function re-asks for input
- * @since v.1.3.0
- */
-var retrydup = function retrydup(YTURL, TYPE) {
-  rl.question("".concat(colorCodes.bright, "Should duplicates be removed? (yes/no): ").concat(colorCodes.reset), /*#__PURE__*/function () {
-    var _ref9 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee9(DUPLICATE) {
-      return _regeneratorRuntime().wrap(function _callee9$(_context9) {
-        while (1) switch (_context9.prev = _context9.next) {
-          case 0:
-            if (!(DUPLICATE.toLowerCase().trim() !== "yes" && DUPLICATE.toLowerCase().trim() !== "no")) {
-              _context9.next = 3;
-              break;
-            }
-            console.log("".concat(colorCodes.yellow, "Please enter a valid value").concat(colorCodes.reset));
-            return _context9.abrupt("return", retrydup());
-          case 3:
-            downloadPlaylist(String(YTURL), String(TYPE), String(DUPLICATE));
-          case 4:
-          case "end":
-            return _context9.stop();
-        }
-      }, _callee9);
-    }));
-    return function (_x12) {
-      return _ref9.apply(this, arguments);
-    };
-  }());
-};
+} else {
+  downloadPlaylist(playlistUrl, type, duplicate);
+}
