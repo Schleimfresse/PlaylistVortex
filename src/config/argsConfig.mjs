@@ -7,7 +7,8 @@ import { hideBin } from "yargs/helpers";
  */
 const argv = yargs(hideBin(process.argv))
 	.option("url", {
-		describe: "Paste your YouTube playlist link (use quotation marks or you get an error since some characters are not supported in the command prompt)",
+		describe:
+			"Paste your YouTube playlist link (use quotation marks or you get an error since some characters are not supported in the command prompt)",
 		type: "string",
 		demandOption: false,
 		coerce: (url) => {
@@ -32,5 +33,14 @@ const argv = yargs(hideBin(process.argv))
 		demandOption: false,
 		default: false,
 		alias: "d",
+	})
+	.option("quality", {
+		describe:
+			'Specify the video quality. Available options are "highest", "lowest", or a specific format like "720p", "1080p", etc.',
+		type: "string",
+		choices: ["highest", "lowest"],
+		demandOption: false,
+		default: "highest",
+		alias: "q",
 	}).argv;
 export default argv;
